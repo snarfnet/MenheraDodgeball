@@ -249,9 +249,9 @@ class Character: SKNode {
         let duration = TimeInterval(dist / 160.0)
         let move = SKAction.move(to: destination, duration: duration)
         move.timingMode = .easeInEaseOut
-        run(move, withKey: "move") {
+        run(SKAction.sequence([move, SKAction.run {
             if self.state == .moving { self.state = .idle }
-        }
+        }]), withKey: "move")
     }
 
     func throwBall() {

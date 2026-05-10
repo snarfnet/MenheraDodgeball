@@ -128,7 +128,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         centerCircle.fillColor = .clear
         centerCircle.strokeColor = UIColor(white: 1, alpha: 0.2)
         centerCircle.lineWidth = 1.5
-        centerCircle.lineDashPattern = [6, 4]
         centerCircle.zPosition = -4
         courtNode.addChild(centerCircle)
 
@@ -157,7 +156,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let line = SKShapeNode(path: path)
         line.strokeColor = UIColor(white: 1, alpha: 0.35)
         line.lineWidth = 2
-        line.lineDashPattern = [8, 6]
         line.zPosition = -3
         return line
     }
@@ -537,7 +535,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         indicator.path = path
         indicator.strokeColor = UIColor(red: 1, green: 0.5, blue: 0.7, alpha: 0.7)
         indicator.lineWidth = 2
-        indicator.lineDashPattern = [6, 3]
         indicator.zPosition = 10
         addChild(indicator)
         swipeIndicator = indicator
