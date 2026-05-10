@@ -564,31 +564,57 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func performThrow(from character: Character, toward target: CGPoint) {
         guard let ball = balls.first(where: { !$0.isActive }), character.hasBall else { return }
 
-        character.hasBall = false
-        character.throwBall()
-        deselectVisual(character)
-        selectedCharacter = nil
+        let charIndex = playerTeam.firstIndex(where: { $0 === character }) ?? 0
+        let dialogue = Dialogues.throwDialogue(
+            myScore: playerTeam.filter { $0.isAlive }.count,
+            enemyScore: enemyTeam.filter { $0.isAlive }.count
+        )
 
-        ball.thrownByTeam = .player
-        ball.position = character.position
-        ball.launch(toward: target, from: character.position, speed: 440)
+        // Pause game for cut-in
+        gameActive = false
 
-        clearBallIndicator()
-        instructionLabel.text = "キャラをタップ → 移動 | ボールを持ってスワイプで投げる"
+        let cutIn = CutInOverlay()
+        cutIn.show(in: self, characterIndex: charIndex, isPlayer: true, dialogue: dialogue) { [weak self] in
+            guard let self = self else { return }
 
-        // Screen flash
-        flashScreen(color: UIColor(red: 1, green: 0.6, blue: 0.8, alpha: 0.12))
+            character.hasBall = false
+            character.throwBall()
+            self.deselectVisual(character)
+            self.selectedCharacter = nil
+
+            ball.thrownByTeam = .player
+            ball.position = character.position
+            ball.launch(toward: target, from: character.position, speed: 440)
+
+            self.clearBallIndicator()
+            self.instructionLabel.text = "キャラをタップ → 移動 | ボールを持ってスワイプで投げる"
+            self.flashScreen(color: UIColor(red: 1, green: 0.6, blue: 0.8, alpha: 0.12))
+
+            self.gameActive = true
+        }
     }
 
     func aiThrow(from enemy: Character, toward target: CGPoint) {
         guard let ball = balls.first(where: { !$0.isActive }), enemy.hasBall else { return }
 
-        enemy.hasBall = false
-        enemy.throwBall()
+        let charIndex = enemyTeam.firstIndex(where: { $0 === enemy }) ?? 0
+        let dialogue = Dialogues.randomThrow()
 
-        ball.thrownByTeam = .enemy
-        ball.position = enemy.position
-        ball.launch(toward: target, from: enemy.position, speed: 340 + CGFloat(aiController != nil ? currentRound * 30 : 0))
+        gameActive = false
+
+        let cutIn = CutInOverlay()
+        cutIn.show(in: self, characterIndex: charIndex, isPlayer: false, dialogue: dialogue) { [weak self] in
+            guard let self = self else { return }
+
+            enemy.hasBall = false
+            enemy.throwBall()
+
+            ball.thrownByTeam = .enemy
+            ball.position = enemy.position
+            ball.launch(toward: target, from: enemy.position, speed: 340 + CGFloat(self.currentRound * 30))
+
+            self.gameActive = true
+        }
     }
 
     private func flashScreen(color: UIColor) {
