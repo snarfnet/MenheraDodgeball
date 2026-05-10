@@ -2,7 +2,7 @@ import jwt, time, requests, sys
 
 KEY_ID = 'WDXGY9WX55'
 ISSUER = '2be0734f-943a-4d61-9dc9-5d9045c46fec'
-APP_ID = ''
+APP_ID = '6768119475'
 BUILD_NUMBER = sys.argv[1]
 VERSION = sys.argv[2] if len(sys.argv) > 2 else '1.0'
 
@@ -50,6 +50,10 @@ if not build_id:
 r = api('PATCH', f'/builds/{build_id}',
     json={'data': {'type': 'builds', 'id': build_id, 'attributes': {'usesNonExemptEncryption': False}}})
 print(f'Export compliance: {r.status_code}')
+
+# TestFlight only - skip review submission
+print('Build uploaded to TestFlight. Skipping review submission.')
+sys.exit(0)
 
 # Find version
 version_id = None
