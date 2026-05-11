@@ -9,7 +9,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        window = UIWindow()
+        window = UIWindow(frame: UIScreen.main.bounds)
         window?.rootViewController = GameViewController()
         window?.makeKeyAndVisible()
         return true

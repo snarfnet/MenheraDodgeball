@@ -3,6 +3,8 @@ import SpriteKit
 
 class GameViewController: UIViewController {
 
+    private var didPresentScene = false
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -10,7 +12,12 @@ class GameViewController: UIViewController {
         skView.ignoresSiblingOrder = true
         skView.showsFPS = false
         skView.showsNodeCount = false
+    }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard !didPresentScene, let skView = view as? SKView, skView.bounds.size != .zero else { return }
+        didPresentScene = true
         let scene = MenuScene(size: skView.bounds.size)
         scene.scaleMode = .aspectFill
         skView.presentScene(scene)
