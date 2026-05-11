@@ -75,14 +75,16 @@ class ResultScene: SKScene {
             subLabel.zPosition = 5
             addChild(subLabel)
 
-            // Fallen character
-            let char = Character(team: .player)
-            char.position = CGPoint(x: size.width / 2, y: size.height * 0.46)
-            char.zRotation = -.pi / 2
-            char.setScale(1.4)
-            char.alpha = 0.6
-            char.zPosition = 5
-            addChild(char)
+            // Fallen characters
+            for i in 0..<3 {
+                let char = Character(team: .player, index: i)
+                char.position = CGPoint(x: size.width * (0.25 + CGFloat(i) * 0.25), y: size.height * 0.46)
+                char.zRotation = CGFloat.random(in: -1.2...(-0.8))
+                char.setScale(1.2)
+                char.alpha = 0.5
+                char.zPosition = 5
+                addChild(char)
+            }
         }
     }
 

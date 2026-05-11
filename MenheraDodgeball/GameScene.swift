@@ -229,13 +229,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         for i in 0..<teamSize {
             let y = courtRect.minY + spacing * CGFloat(i + 1)
 
-            let player = Character(team: .player)
+            let player = Character(team: .player, index: i)
             player.position = CGPoint(x: playerX, y: y)
             player.zPosition = 5
             addChild(player)
             playerTeam.append(player)
 
-            let enemy = Character(team: .enemy)
+            let enemy = Character(team: .enemy, index: i)
             enemy.position = CGPoint(x: enemyX, y: y)
             enemy.zPosition = 5
             addChild(enemy)

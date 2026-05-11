@@ -2,14 +2,8 @@ import SpriteKit
 
 class CutInOverlay: SKNode {
 
-    private let background = SKShapeNode()
-    private let portrait = SKSpriteNode()
-    private let speechLabel = SKLabelNode()
-    private let nameLabel = SKLabelNode()
-
-    // Character portrait image names
-    static let playerPortraits = ["player1_cutin", "player2_cutin", "player3_cutin"]
-    static let enemyPortraits = ["enemy1_cutin", "enemy2_cutin", "enemy3_cutin"]
+    static let playerNames = ["メンヘラちゃん", "ヤミちゃん", "ツンデレちゃん"]
+    static let enemyNames = ["サイコちゃん", "ナミダちゃん", "ステッチちゃん"]
 
     override init() {
         super.init()
@@ -17,16 +11,14 @@ class CutInOverlay: SKNode {
         isUserInteractionEnabled = false
     }
 
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder aDecoder: NSCoder) { fatalError() }
 
-    /// Show a dramatic cut-in when a character grabs a ball or throws
     func show(in scene: SKScene, characterIndex: Int, isPlayer: Bool, dialogue: String, completion: @escaping () -> Void) {
         removeAllChildren()
         removeAllActions()
 
         let sceneSize = scene.size
+        let idx = min(characterIndex, 2)
 
         // Full-screen dark overlay
         let overlay = SKShapeNode(rectOf: sceneSize)
@@ -37,128 +29,67 @@ class CutInOverlay: SKNode {
         addChild(overlay)
 
         // Diagonal slash background
-        let slash = SKShapeNode()
-        let slashPath = CGMutablePath()
-        let w = sceneSize.width
-        let h = sceneSize.height
-        slashPath.move(to: CGPoint(x: -w * 0.6, y: -h / 2))
-        slashPath.addLine(to: CGPoint(x: w * 0.1, y: -h / 2))
-        slashPath.addLine(to: CGPoint(x: -w * 0.1, y: h / 2))
-        slashPath.addLine(to: CGPoint(x: -w * 0.6, y: h / 2))
-        slashPath.closeSubpath()
-        slash.path = slashPath
-        slash.fillColor = isPlayer ? UIColor(red: 0.9, green: 0.2, blue: 0.5, alpha: 0.85) : UIColor(red: 0.4, green: 0.1, blue: 0.6, alpha: 0.85)
-        slash.strokeColor = .white
-        slash.lineWidth = 3
-        slash.zPosition = 1
+        let slashColor = isPlayer
+            ? UIColor(red: 0.9, green: 0.2, blue: 0.5, alpha: 0.88)
+            : UIColor(red: 0.35, green: 0.1, blue: 0.55, alpha: 0.88)
+
+        let slash = createSlash(size: sceneSize, color: slashColor)
         slash.alpha = 0
         addChild(slash)
 
-        // Portrait
-        let portraits = isPlayer ? CutInOverlay.playerPortraits : CutInOverlay.enemyPortraits
-        let idx = min(characterIndex, portraits.count - 1)
-        let portraitName = portraits[idx]
+        // Secondary accent slash
+        let accentColor = isPlayer
+            ? UIColor(red: 1.0, green: 0.6, blue: 0.8, alpha: 0.3)
+            : UIColor(red: 0.6, green: 0.3, blue: 0.8, alpha: 0.3)
+        let slash2 = createAccentSlash(size: sceneSize, color: accentColor)
+        slash2.alpha = 0
+        addChild(slash2)
 
-        // Try to load image, fallback to procedural
-        let portraitNode: SKNode
-        if let _ = UIImage(named: portraitName) {
-            let sprite = SKSpriteNode(imageNamed: portraitName)
-            sprite.size = CGSize(width: 280, height: 280)
-            portraitNode = sprite
-        } else {
-            portraitNode = createProceduralPortrait(index: characterIndex, isPlayer: isPlayer)
-        }
-        portraitNode.position = CGPoint(x: -sceneSize.width * 0.22, y: 0)
+        // Portrait
+        let styles = isPlayer ? Character.playerStyles : Character.enemyStyles
+        let style = styles[idx]
+        let portraitNode = createPortrait(style: style, hairStyle: style.hairStyle, size: 200)
+        portraitNode.position = CGPoint(x: -sceneSize.width * 0.22, y: 10)
         portraitNode.zPosition = 2
         portraitNode.alpha = 0
-        portraitNode.setScale(1.5)
+        portraitNode.setScale(1.8)
         addChild(portraitNode)
 
-        // Character name
-        let names = isPlayer
-            ? ["メンヘラちゃん", "ヤミちゃん", "ツンデレちゃん"]
-            : ["サイコちゃん", "ナミダちゃん", "ステッチちゃん"]
-        let nameNode = SKLabelNode(text: names[min(characterIndex, 2)])
-        nameNode.fontName = "HiraginoSans-W7"
-        nameNode.fontSize = 22
-        nameNode.fontColor = .white
-        nameNode.position = CGPoint(x: sceneSize.width * 0.15, y: 40)
-        nameNode.zPosition = 3
-        nameNode.alpha = 0
-        addChild(nameNode)
+        // Character name with background
+        let names = isPlayer ? CutInOverlay.playerNames : CutInOverlay.enemyNames
+        let nameTag = createNameTag(name: names[idx], color: slashColor, sceneSize: sceneSize)
+        nameTag.position = CGPoint(x: sceneSize.width * 0.18, y: 50)
+        nameTag.alpha = 0
+        addChild(nameTag)
 
         // Dialogue bubble
-        let bubbleBg = SKShapeNode(rectOf: CGSize(width: sceneSize.width * 0.55, height: 80), cornerRadius: 12)
-        bubbleBg.fillColor = UIColor(white: 0, alpha: 0.7)
-        bubbleBg.strokeColor = isPlayer ? .systemPink : .purple
-        bubbleBg.lineWidth = 2
-        bubbleBg.position = CGPoint(x: sceneSize.width * 0.15, y: -20)
-        bubbleBg.zPosition = 3
-        bubbleBg.alpha = 0
-        addChild(bubbleBg)
-
-        let dialogueNode = SKLabelNode(text: dialogue)
-        dialogueNode.fontName = "HiraginoSans-W6"
-        dialogueNode.fontSize = 20
-        dialogueNode.fontColor = .white
-        dialogueNode.preferredMaxLayoutWidth = sceneSize.width * 0.5
-        dialogueNode.numberOfLines = 2
-        dialogueNode.verticalAlignmentMode = .center
-        dialogueNode.position = CGPoint(x: sceneSize.width * 0.15, y: -20)
-        dialogueNode.zPosition = 4
-        dialogueNode.alpha = 0
-        addChild(dialogueNode)
+        let dialogueBubble = createDialogueBubble(text: dialogue, color: slashColor, sceneSize: sceneSize)
+        dialogueBubble.position = CGPoint(x: sceneSize.width * 0.18, y: -15)
+        dialogueBubble.alpha = 0
+        addChild(dialogueBubble)
 
         // Speed lines
-        for i in 0..<12 {
-            let line = SKShapeNode(rectOf: CGSize(width: CGFloat.random(in: 2...5), height: sceneSize.height * CGFloat.random(in: 0.3...1.0)))
-            line.fillColor = .white
-            line.strokeColor = .clear
-            line.alpha = 0
-            line.position = CGPoint(
-                x: CGFloat.random(in: -sceneSize.width/2...sceneSize.width/2),
-                y: CGFloat.random(in: -sceneSize.height/2...sceneSize.height/2)
-            )
-            line.zRotation = CGFloat.random(in: -0.3...0.3)
-            line.zPosition = 1
-            addChild(line)
-            line.run(.sequence([
-                .wait(forDuration: 0.05),
-                .fadeAlpha(to: CGFloat.random(in: 0.1...0.3), duration: 0.1),
-                .wait(forDuration: 0.8),
-                .fadeOut(withDuration: 0.15)
-            ]))
-        }
+        spawnSpeedLines(sceneSize: sceneSize, color: isPlayer ? .systemPink : .purple)
+
+        // Manga-style impact lines at edges
+        spawnImpactBurst(sceneSize: sceneSize)
 
         // Animate in
-        let animDuration = 0.15
-        overlay.run(.fadeAlpha(to: 0.5, duration: animDuration))
-        slash.run(.sequence([
-            .group([
-                .fadeIn(withDuration: animDuration),
-                .moveBy(x: 30, y: 0, duration: animDuration)
-            ])
-        ]))
-        portraitNode.run(.sequence([
-            .wait(forDuration: 0.05),
-            .group([
-                .fadeIn(withDuration: animDuration),
-                .scale(to: 1.0, duration: animDuration * 1.5)
-            ])
-        ]))
-        nameNode.run(.sequence([.wait(forDuration: 0.1), .fadeIn(withDuration: 0.1)]))
-        bubbleBg.run(.sequence([.wait(forDuration: 0.1), .fadeIn(withDuration: 0.1)]))
-        dialogueNode.run(.sequence([.wait(forDuration: 0.12), .fadeIn(withDuration: 0.1)]))
+        let dur = 0.13
+        overlay.run(.fadeAlpha(to: 0.55, duration: dur))
+        slash.run(.sequence([.group([.fadeIn(withDuration: dur), .moveBy(x: 40, y: 0, duration: dur)])]))
+        slash2.run(.sequence([.wait(forDuration: 0.03), .group([.fadeIn(withDuration: dur), .moveBy(x: 25, y: 0, duration: dur)])]))
+        portraitNode.run(.sequence([.wait(forDuration: 0.04), .group([.fadeIn(withDuration: dur), .scale(to: 1.0, duration: dur * 1.5)])]))
+        nameTag.run(.sequence([.wait(forDuration: 0.08), .fadeIn(withDuration: 0.1)]))
+        dialogueBubble.run(.sequence([.wait(forDuration: 0.1), .fadeIn(withDuration: 0.1)]))
 
         // Hold then dismiss
         run(.sequence([
-            .wait(forDuration: 1.0),
+            .wait(forDuration: 0.95),
             .run { [weak self] in
-                self?.children.forEach { child in
-                    child.run(.fadeOut(withDuration: 0.12))
-                }
+                self?.children.forEach { $0.run(.fadeOut(withDuration: 0.1)) }
             },
-            .wait(forDuration: 0.15),
+            .wait(forDuration: 0.12),
             .run { [weak self] in
                 self?.removeFromParent()
                 completion()
@@ -168,83 +99,312 @@ class CutInOverlay: SKNode {
         scene.addChild(self)
     }
 
-    /// Procedural fallback portrait when image assets aren't available
-    private func createProceduralPortrait(index: Int, isPlayer: Bool) -> SKNode {
+    // MARK: - Slash backgrounds
+
+    private func createSlash(size: CGSize, color: UIColor) -> SKShapeNode {
+        let w = size.width
+        let h = size.height
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -w * 0.6, y: -h / 2))
+        path.addLine(to: CGPoint(x: w * 0.1, y: -h / 2))
+        path.addLine(to: CGPoint(x: -w * 0.1, y: h / 2))
+        path.addLine(to: CGPoint(x: -w * 0.6, y: h / 2))
+        path.closeSubpath()
+        let slash = SKShapeNode(path: path)
+        slash.fillColor = color
+        slash.strokeColor = .white
+        slash.lineWidth = 3
+        slash.zPosition = 1
+        return slash
+    }
+
+    private func createAccentSlash(size: CGSize, color: UIColor) -> SKShapeNode {
+        let w = size.width
+        let h = size.height
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -w * 0.12, y: -h / 2))
+        path.addLine(to: CGPoint(x: w * 0.02, y: -h / 2))
+        path.addLine(to: CGPoint(x: -w * 0.18, y: h / 2))
+        path.addLine(to: CGPoint(x: -w * 0.32, y: h / 2))
+        path.closeSubpath()
+        let slash = SKShapeNode(path: path)
+        slash.fillColor = color
+        slash.strokeColor = .clear
+        slash.zPosition = 1
+        return slash
+    }
+
+    // MARK: - Portrait
+
+    private func createPortrait(style: Character.CharacterStyle, hairStyle: Int, size: CGFloat) -> SKNode {
         let container = SKNode()
-
-        let colors: [UIColor] = isPlayer
-            ? [.systemPink, UIColor(red: 0.3, green: 0.1, blue: 0.3, alpha: 1), .white]
-            : [.purple, UIColor(red: 0.1, green: 0.2, blue: 0.4, alpha: 1), UIColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1)]
-
-        let color = colors[min(index, 2)]
+        let scale = size / 48.0
 
         // Face circle
-        let face = SKShapeNode(circleOfRadius: 100)
-        face.fillColor = UIColor(white: 0.9, alpha: 1)
-        face.strokeColor = color
-        face.lineWidth = 4
+        let face = SKShapeNode(circleOfRadius: 80)
+        face.fillColor = style.bodyColor
+        face.strokeColor = style.strokeColor
+        face.lineWidth = 3
+        face.zPosition = 0
         container.addChild(face)
 
-        // Hair
-        let hair = SKShapeNode(circleOfRadius: 105)
-        hair.fillColor = color
-        hair.strokeColor = .clear
-        let hairCrop = SKCropNode()
-        let hairMask = SKShapeNode(rectOf: CGSize(width: 220, height: 110))
-        hairMask.fillColor = .white
-        hairMask.position = CGPoint(x: 0, y: 50)
-        hairCrop.maskNode = hairMask
-        hairCrop.addChild(hair)
-        container.addChild(hairCrop)
+        // Hair background
+        let hairBg = SKShapeNode(circleOfRadius: 88)
+        hairBg.fillColor = style.hairColor
+        hairBg.strokeColor = .clear
+        hairBg.zPosition = -1
 
-        // Eyes
-        let eyeExpressions: [(left: String, right: String)] = [
-            ("◉", "◉"),   // intense stare
-            ("×", "◉"),   // one eye X
-            ("◉", "◉"),   // normal
-        ]
-        let expr = eyeExpressions[min(index, 2)]
+        let hairMask = SKCropNode()
+        let maskNode = SKShapeNode(rectOf: CGSize(width: 200, height: 100))
+        maskNode.fillColor = .white
+        maskNode.position = CGPoint(x: 0, y: 50)
+        hairMask.maskNode = maskNode
+        hairMask.addChild(hairBg)
+        container.addChild(hairMask)
 
-        let leftEye = SKLabelNode(text: expr.left)
-        leftEye.fontSize = 36
-        leftEye.fontColor = color
-        leftEye.position = CGPoint(x: -30, y: -10)
-        container.addChild(leftEye)
+        // Hair details per style
+        switch hairStyle {
+        case 0: // Twintails
+            for side: CGFloat in [-1, 1] {
+                let tail = SKShapeNode(ellipseOf: CGSize(width: 40, height: 90))
+                tail.position = CGPoint(x: side * 85, y: -10)
+                tail.fillColor = style.hairColor
+                tail.strokeColor = style.hairColor.adjusted(brightness: -0.15)
+                tail.lineWidth = 2
+                tail.zPosition = -1
+                tail.zRotation = side * 0.15
+                container.addChild(tail)
 
-        let rightEye = SKLabelNode(text: expr.right)
-        rightEye.fontSize = 36
-        rightEye.fontColor = color
-        rightEye.position = CGPoint(x: 30, y: -10)
-        container.addChild(rightEye)
-
-        // Mouth
-        let mouths = ["∀", "ω", "д"]
-        let mouth = SKLabelNode(text: mouths[min(index, 2)])
-        mouth.fontSize = 28
-        mouth.fontColor = UIColor(red: 0.8, green: 0.2, blue: 0.3, alpha: 1)
-        mouth.position = CGPoint(x: 0, y: -50)
-        container.addChild(mouth)
-
-        // Bandage
-        if index == 0 || index == 2 {
-            let bandage = SKLabelNode(text: "✚")
-            bandage.fontSize = 30
-            bandage.fontColor = .white
-            bandage.position = CGPoint(x: index == 0 ? 60 : -60, y: 20)
-            container.addChild(bandage)
-        }
-
-        // Tears
-        if index == 1 {
-            for x in [-25, 25] {
-                let tear = SKShapeNode(ellipseOf: CGSize(width: 6, height: 16))
-                tear.fillColor = .cyan
-                tear.strokeColor = .clear
-                tear.position = CGPoint(x: CGFloat(x), y: -30)
-                container.addChild(tear)
+                let ribbon = SKShapeNode(rectOf: CGSize(width: 18, height: 10), cornerRadius: 3)
+                ribbon.position = CGPoint(x: side * 78, y: 30)
+                ribbon.fillColor = style.accessoryColor
+                ribbon.strokeColor = style.accessoryColor.adjusted(brightness: -0.2)
+                ribbon.lineWidth = 1
+                ribbon.zPosition = 3
+                ribbon.zRotation = side * 0.3
+                container.addChild(ribbon)
+            }
+        case 1: // Bob cut
+            for side: CGFloat in [-1, 1] {
+                let sideHair = SKShapeNode(rectOf: CGSize(width: 30, height: 55), cornerRadius: 12)
+                sideHair.position = CGPoint(x: side * 78, y: -15)
+                sideHair.fillColor = style.hairColor
+                sideHair.strokeColor = .clear
+                sideHair.zPosition = -1
+                container.addChild(sideHair)
+            }
+        default: // Long
+            for side: CGFloat in [-1, 1] {
+                let strand = SKShapeNode(rectOf: CGSize(width: 32, height: 100), cornerRadius: 14)
+                strand.position = CGPoint(x: side * 80, y: -30)
+                strand.fillColor = style.hairColor
+                strand.strokeColor = .clear
+                strand.zPosition = -1
+                strand.zRotation = side * 0.06
+                container.addChild(strand)
             }
         }
 
+        // Bangs
+        let bangPath = CGMutablePath()
+        bangPath.move(to: CGPoint(x: -70, y: 40))
+        bangPath.addCurve(to: CGPoint(x: 0, y: 28), control1: CGPoint(x: -40, y: 75), control2: CGPoint(x: -15, y: 55))
+        bangPath.addCurve(to: CGPoint(x: 70, y: 40), control1: CGPoint(x: 15, y: 55), control2: CGPoint(x: 40, y: 75))
+        let bangs = SKShapeNode(path: bangPath)
+        bangs.fillColor = style.hairColor
+        bangs.strokeColor = style.hairColor.adjusted(brightness: -0.1)
+        bangs.lineWidth = 1.5
+        bangs.zPosition = 3
+        container.addChild(bangs)
+
+        // Eyes - large anime style
+        for (xPos, side) in [(-28.0, -1.0), (28.0, 1.0)] as [(CGFloat, CGFloat)] {
+            let eyeWhite = SKShapeNode(ellipseOf: CGSize(width: 32, height: 36))
+            eyeWhite.position = CGPoint(x: xPos, y: 5)
+            eyeWhite.fillColor = .white
+            eyeWhite.strokeColor = style.eyeColor.withAlphaComponent(0.3)
+            eyeWhite.lineWidth = 1.5
+            eyeWhite.zPosition = 4
+
+            let iris = SKShapeNode(circleOfRadius: 13)
+            iris.fillColor = style.eyeColor
+            iris.strokeColor = style.eyeColor.adjusted(brightness: -0.3)
+            iris.lineWidth = 1
+            iris.zPosition = 1
+
+            let pupil = SKShapeNode(circleOfRadius: 6)
+            pupil.fillColor = UIColor(white: 0.05, alpha: 1)
+            pupil.strokeColor = .clear
+            pupil.zPosition = 2
+            iris.addChild(pupil)
+
+            let shine1 = SKShapeNode(circleOfRadius: 5)
+            shine1.position = CGPoint(x: side * 4, y: 4)
+            shine1.fillColor = .white
+            shine1.strokeColor = .clear
+            shine1.zPosition = 3
+            iris.addChild(shine1)
+
+            let shine2 = SKShapeNode(circleOfRadius: 2.5)
+            shine2.position = CGPoint(x: side * -3, y: -4)
+            shine2.fillColor = UIColor(white: 1, alpha: 0.6)
+            shine2.strokeColor = .clear
+            shine2.zPosition = 3
+            iris.addChild(shine2)
+
+            eyeWhite.addChild(iris)
+            container.addChild(eyeWhite)
+        }
+
+        // Blush
+        for x: CGFloat in [-35, 35] {
+            let blush = SKShapeNode(ellipseOf: CGSize(width: 28, height: 14))
+            blush.position = CGPoint(x: x, y: -10)
+            blush.fillColor = style.blushColor
+            blush.strokeColor = .clear
+            blush.zPosition = 4
+            container.addChild(blush)
+        }
+
+        // Mouth
+        let mouthPath = CGMutablePath()
+        mouthPath.move(to: CGPoint(x: -12, y: -25))
+        mouthPath.addCurve(to: CGPoint(x: 0, y: -20), control1: CGPoint(x: -6, y: -32), control2: CGPoint(x: -3, y: -20))
+        mouthPath.addCurve(to: CGPoint(x: 12, y: -25), control1: CGPoint(x: 3, y: -20), control2: CGPoint(x: 6, y: -32))
+        let mouth = SKShapeNode(path: mouthPath)
+        mouth.strokeColor = style.eyeColor.withAlphaComponent(0.6)
+        mouth.lineWidth = 2
+        mouth.fillColor = .clear
+        mouth.zPosition = 5
+        container.addChild(mouth)
+
+        // Bandage
+        let bnd = SKShapeNode(rectOf: CGSize(width: 36, height: 16), cornerRadius: 5)
+        bnd.position = CGPoint(x: 15, y: 55)
+        bnd.fillColor = UIColor(white: 0.97, alpha: 0.95)
+        bnd.strokeColor = UIColor(white: 0.82, alpha: 1)
+        bnd.lineWidth = 1
+        bnd.zRotation = 0.2
+        bnd.zPosition = 5
+        let c1 = SKShapeNode(rectOf: CGSize(width: 22, height: 2.5))
+        c1.fillColor = style.accessoryColor.withAlphaComponent(0.6)
+        c1.strokeColor = .clear
+        bnd.addChild(c1)
+        let c2 = SKShapeNode(rectOf: CGSize(width: 2.5, height: 10))
+        c2.fillColor = style.accessoryColor.withAlphaComponent(0.6)
+        c2.strokeColor = .clear
+        bnd.addChild(c2)
+        container.addChild(bnd)
+
+        container.setScale(scale * 0.26)
         return container
+    }
+
+    // MARK: - UI Elements
+
+    private func createNameTag(name: String, color: UIColor, sceneSize: CGSize) -> SKNode {
+        let container = SKNode()
+        container.zPosition = 3
+
+        let bg = SKShapeNode(rectOf: CGSize(width: sceneSize.width * 0.48, height: 34), cornerRadius: 6)
+        bg.fillColor = color.withAlphaComponent(0.85)
+        bg.strokeColor = .white
+        bg.lineWidth = 1.5
+        container.addChild(bg)
+
+        let label = SKLabelNode(text: name)
+        label.fontName = "HiraginoSans-W8"
+        label.fontSize = 20
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        container.addChild(label)
+
+        return container
+    }
+
+    private func createDialogueBubble(text: String, color: UIColor, sceneSize: CGSize) -> SKNode {
+        let container = SKNode()
+        container.zPosition = 3
+
+        let bg = SKShapeNode(rectOf: CGSize(width: sceneSize.width * 0.55, height: 72), cornerRadius: 14)
+        bg.fillColor = UIColor(red: 0.06, green: 0.04, blue: 0.1, alpha: 0.88)
+        bg.strokeColor = color.withAlphaComponent(0.6)
+        bg.lineWidth = 2
+        container.addChild(bg)
+
+        // Inner glow line
+        let innerGlow = SKShapeNode(rectOf: CGSize(width: sceneSize.width * 0.53, height: 68), cornerRadius: 12)
+        innerGlow.fillColor = .clear
+        innerGlow.strokeColor = color.withAlphaComponent(0.15)
+        innerGlow.lineWidth = 1
+        container.addChild(innerGlow)
+
+        let dialogueNode = SKLabelNode(text: text)
+        dialogueNode.fontName = "HiraginoSans-W6"
+        dialogueNode.fontSize = 18
+        dialogueNode.fontColor = .white
+        dialogueNode.preferredMaxLayoutWidth = sceneSize.width * 0.48
+        dialogueNode.numberOfLines = 2
+        dialogueNode.verticalAlignmentMode = .center
+        dialogueNode.zPosition = 1
+        container.addChild(dialogueNode)
+
+        return container
+    }
+
+    // MARK: - Effects
+
+    private func spawnSpeedLines(sceneSize: CGSize, color: UIColor) {
+        for _ in 0..<15 {
+            let lineWidth = CGFloat.random(in: 1.5...4)
+            let lineHeight = sceneSize.height * CGFloat.random(in: 0.25...0.9)
+            let line = SKShapeNode(rectOf: CGSize(width: lineWidth, height: lineHeight))
+            line.fillColor = .white
+            line.strokeColor = .clear
+            line.alpha = 0
+            line.position = CGPoint(
+                x: CGFloat.random(in: -sceneSize.width / 2...sceneSize.width / 2),
+                y: CGFloat.random(in: -sceneSize.height / 2...sceneSize.height / 2)
+            )
+            line.zRotation = CGFloat.random(in: -0.25...0.25)
+            line.zPosition = 1
+            addChild(line)
+
+            line.run(.sequence([
+                .wait(forDuration: Double.random(in: 0...0.05)),
+                .fadeAlpha(to: CGFloat.random(in: 0.08...0.25), duration: 0.08),
+                .wait(forDuration: 0.75),
+                .fadeOut(withDuration: 0.12)
+            ]))
+        }
+    }
+
+    private func spawnImpactBurst(sceneSize: CGSize) {
+        // Radial burst lines from center-left
+        let burstCenter = CGPoint(x: -sceneSize.width * 0.15, y: 0)
+        for i in 0..<8 {
+            let angle = CGFloat(i) * (.pi * 2 / 8) + CGFloat.random(in: -0.2...0.2)
+            let length = CGFloat.random(in: 40...90)
+
+            let line = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: burstCenter.x + cos(angle) * 30,
+                                  y: burstCenter.y + sin(angle) * 30))
+            path.addLine(to: CGPoint(x: burstCenter.x + cos(angle) * (30 + length),
+                                     y: burstCenter.y + sin(angle) * (30 + length)))
+            line.path = path
+            line.strokeColor = UIColor(white: 1, alpha: 0.4)
+            line.lineWidth = CGFloat.random(in: 1...3)
+            line.zPosition = 2
+            line.alpha = 0
+            addChild(line)
+
+            line.run(.sequence([
+                .wait(forDuration: 0.06),
+                .fadeAlpha(to: 0.6, duration: 0.06),
+                .wait(forDuration: 0.6),
+                .fadeOut(withDuration: 0.15)
+            ]))
+        }
     }
 }

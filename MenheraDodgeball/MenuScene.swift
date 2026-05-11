@@ -118,30 +118,54 @@ class MenuScene: SKScene {
     }
 
     private func setupDecorations() {
-        // Decorative menhera characters on sides
-        addDecorativeChar(at: CGPoint(x: size.width * 0.12, y: size.height * 0.48), team: .player, scale: 0.7)
-        addDecorativeChar(at: CGPoint(x: size.width * 0.88, y: size.height * 0.48), team: .enemy, scale: 0.7)
+        // Show all 3 player characters on left, 3 enemy on right
+        for i in 0..<3 {
+            let yOffset = size.height * (0.42 + CGFloat(i) * 0.06)
+            let playerChar = Character(team: .player, index: i)
+            playerChar.position = CGPoint(x: size.width * (0.08 + CGFloat(i) * 0.04), y: yOffset)
+            playerChar.setScale(0.55 + CGFloat(i) * 0.05)
+            playerChar.zPosition = 3 + CGFloat(i)
+            let sway1 = SKAction.repeatForever(SKAction.sequence([
+                SKAction.rotate(toAngle: 0.12, duration: 1.0 + Double(i) * 0.2),
+                SKAction.rotate(toAngle: -0.12, duration: 1.0 + Double(i) * 0.2)
+            ]))
+            playerChar.run(sway1)
+            addChild(playerChar)
 
-        // Small hearts
-        for _ in 0..<4 {
-            let heart = SKLabelNode(text: Bool.random() ? "💔" : "🖤")
-            heart.fontSize = CGFloat.random(in: 12...20)
+            let enemyChar = Character(team: .enemy, index: i)
+            enemyChar.position = CGPoint(x: size.width * (0.92 - CGFloat(i) * 0.04), y: yOffset)
+            enemyChar.setScale(0.55 + CGFloat(i) * 0.05)
+            enemyChar.zPosition = 3 + CGFloat(i)
+            let sway2 = SKAction.repeatForever(SKAction.sequence([
+                SKAction.rotate(toAngle: -0.12, duration: 1.0 + Double(i) * 0.2),
+                SKAction.rotate(toAngle: 0.12, duration: 1.0 + Double(i) * 0.2)
+            ]))
+            enemyChar.run(sway2)
+            addChild(enemyChar)
+        }
+
+        // Floating hearts and broken hearts
+        let emojis = ["💔", "🖤", "💜", "🩹", "🩷"]
+        for _ in 0..<6 {
+            let heart = SKLabelNode(text: emojis.randomElement()!)
+            heart.fontSize = CGFloat.random(in: 10...18)
             heart.position = CGPoint(x: CGFloat.random(in: 20...(size.width - 20)),
-                                     y: CGFloat.random(in: size.height * 0.15...size.height * 0.45))
-            heart.zPosition = 3
-            heart.alpha = 0.4
+                                     y: CGFloat.random(in: size.height * 0.15...size.height * 0.5))
+            heart.zPosition = 2
+            heart.alpha = 0.35
             addChild(heart)
 
             let float = SKAction.repeatForever(SKAction.sequence([
-                SKAction.moveBy(x: 0, y: 6, duration: Double.random(in: 1.2...2.0)),
-                SKAction.moveBy(x: 0, y: -6, duration: Double.random(in: 1.2...2.0))
+                SKAction.moveBy(x: CGFloat.random(in: -3...3), y: 8, duration: Double.random(in: 1.5...2.5)),
+                SKAction.moveBy(x: CGFloat.random(in: -3...3), y: -8, duration: Double.random(in: 1.5...2.5))
             ]))
             heart.run(float)
         }
     }
 
     private func addDecorativeChar(at pos: CGPoint, team: CharacterTeam, scale: CGFloat) {
-        let char = Character(team: team)
+        let index = team == .player ? 0 : 0
+        let char = Character(team: team, index: index)
         char.position = pos
         char.setScale(scale)
         char.zPosition = 3
