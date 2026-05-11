@@ -42,7 +42,5 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UILaunchScreen:
           UIColorName: ""
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
     dependencies:
       - sdk: SpriteKit.framework
